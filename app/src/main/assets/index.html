@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>News Frame Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@600;800&family=Hind:wght@500;700&family=Mukta:wght@600;800&family=Baloo+2:wght@600;800&family=Khand:wght@500;700&family=Teko:wght@500;700&family=Yatra+One&family=Rozha+One&family=Tiro+Devanagari+Hindi&family=Kalam:wght@700&family=Noto+Serif+Devanagari:wght@600;800&family=Anek+Devanagari:wght@600;800&family=Martel:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f4f6;--pn:#fff;--tx:#111827;--bd:#d1d5db;--ac:#d90429;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0f17;--pn:#151b27;--tx:#e5e7eb;--bd:#2a3344}}
+:root[data-theme="dark"]{--bg:#0b0f17;--pn:#151b27;--tx:#e5e7eb;--bd:#2a3344}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px 'Noto Sans Devanagari','Segoe UI',Arial,sans-serif}
+#app{display:flex;height:100vh;height:100dvh}
+#side{width:340px;max-width:44%;overflow-y:auto;background:var(--pn);border-right:1px solid var(--bd);padding:10px}
+main{flex:1;display:flex;flex-direction:column;min-width:0}
+#stage{flex:1;display:flex;align-items:center;justify-content:center;padding:12px;min-height:0;background:#000}
+canvas{max-width:100%;max-height:100%;background:#000}
+#bar{display:flex;gap:8px;align-items:center;padding:10px;background:var(--pn);border-top:1px solid var(--bd);flex-wrap:wrap}
+#bar input[type=range]{flex:1;min-width:120px}
+button{background:var(--ac);color:#fff;border:0;border-radius:6px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}
+button.g{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+button.on{outline:2px solid var(--ac)}
+details{border-bottom:1px solid var(--bd);padding:6px 0}
+summary{font-weight:800;cursor:pointer;padding:4px 0}
+label{display:block;margin:6px 0;font-size:12px;opacity:.9}
+label input:not([type=checkbox]):not([type=color]),label select,label textarea{display:block;width:100%;margin-top:3px;padding:6px;border:1px solid var(--bd);border-radius:5px;background:var(--bg);color:var(--tx);font:inherit}
+label.c{display:flex;align-items:center;gap:6px;float:none}
+label input[type=color]{width:100%;height:30px;border:0;padding:0;margin-top:3px;background:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#rec{color:#d90429;font-weight:800;display:none}
+#top{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 10px;background:var(--pn);border-bottom:1px solid var(--bd)}
+.chip{padding:5px 10px;border-radius:999px;border:1px solid var(--bd);background:transparent;color:var(--tx);font-weight:600;font-size:12px;cursor:pointer}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+#top small{opacity:.7;margin-left:6px}
+#top2{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 10px;background:var(--pn);border-bottom:1px solid var(--bd);font-size:12px}
+#top2 select{padding:5px;border:1px solid var(--bd);border-radius:5px;background:var(--bg);color:var(--tx);font:inherit}
+input[type=range]{height:26px}
+#tabs{display:none}
+#stage{position:relative}
+#toast{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;padding:6px 14px;border-radius:20px;font-weight:700;opacity:0;transition:opacity .2s;pointer-events:none;z-index:3;white-space:nowrap}
+.locked #side details:not([data-tab="export"]){pointer-events:none;opacity:.45}
+.locked #top,.locked #top2{pointer-events:none;opacity:.5}
+.locked #cv{pointer-events:none}
+.big{width:100%;padding:14px;font-size:16px;margin:6px 0}
+.big2{flex:1;min-height:46px;font-size:15px}
+.elrow{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.layinfo{font-weight:700;margin:6px 0}
+.hint{font-size:12px;opacity:.75;margin:6px 0}
+.nudge{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:260px;margin:8px auto}
+.nudge button{padding:14px 0;font-size:22px}
+.xp #xctl{display:flex!important;flex-wrap:wrap;gap:8px}
+.xp button,.xp select{min-height:46px;font-size:15px}
+.xp #rec{width:100%}
+.chipbox{display:flex;flex-wrap:wrap;gap:6px}
+@media(max-width:760px){#top,#top2{display:none!important}#tabs{display:flex;position:sticky;top:0;z-index:5;background:var(--pn);gap:4px;margin:-10px -10px 8px;padding:8px 10px;overflow-x:auto;border-bottom:1px solid var(--bd)}#tabs button{flex:1;min-width:66px;background:transparent;color:var(--tx);border:1px solid var(--bd);padding:8px 4px;font-size:13px}#tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac)}#app{flex-direction:column-reverse}#side{width:100%;max-width:none;flex:1;min-height:0;border-right:0;border-top:1px solid var(--bd)}main{flex:none;height:auto}#stage{flex:none;height:36vh;padding:6px}#top,#top2{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap}#top>*,#top2>*{flex:none}button,select,.chip{min-height:40px}#bar{gap:6px;padding:6px}#bar input[type=range]{min-width:80px}label input:not([type=checkbox]):not([type=color]),label select,label textarea{padding:9px;font-size:15px}}
+</style>
+</head>
+<body>
+<div id="app">
+<aside id="side"></aside>
+<main>
+<div id="top"><button id="vbtn">📂 Video Choose</button><input type="file" id="vin" accept="video/*" hidden><small>Show/Hide:</small><span id="chips" style="display:contents"></span></div>
+<div id="stage"><canvas id="cv"></canvas></div>
+<div id="bar">
+<button id="pp">▶ Play</button>
+<input type="range" id="seek" min="0" max="1000" value="0">
+<span id="tm">0:00</span>
+<button class="g" id="snap">PNG</button>
+<span id="xctl" style="display:contents"><button id="fexp" title="Jaldi export">⚡ Fast Export</button><select id="fq" title="Output size"><option value="1">Full size</option><option value=".5">Half size (bahut tez)</option></select><select id="fsp" title="Speed"><option value="2">2x</option><option value="4" selected>4x</option><option value="8">8x</option></select><button id="exp" class="g" title="Real-time recording">⬇ Normal Export</button><button id="sv" class="g" style="display:none">⬇ Save</button><button id="sh" class="g" style="display:none">↗ Share</button>
+<span id="rec">● Recording… tab khula rakhein</span></span>
+</div>
+</main>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),cx=cv.getContext('2d');
+let F="'Noto Sans Devanagari','Segoe UI',Arial,sans-serif";
+const FONTS=['Noto Sans Devanagari','Hind','Mukta','Baloo 2','Khand','Teko','Anek Devanagari','Martel','Noto Serif Devanagari','Tiro Devanagari Hindi','Rozha One','Yatra One','Kalam'];
+function setFont(){F="'"+S.font+"','Noto Sans Devanagari','Segoe UI',Arial,sans-serif";document.fonts.load('800 20px "'+S.font+'"');document.fonts.load('600 20px "'+S.font+'"')}
+const vid=document.createElement('video');vid.playsInline=true;vid.loop=true;vid.setAttribute('playsinline','');vid.preload='auto';vid.style.cssText='position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:.01;pointer-events:none';document.body.appendChild(vid);
+let logo=null,W=1280,H=720,u=1,recording=false;
+const R={'16:9':[1280,720],'9:16':[720,1280],'1:1':[900,900],'4:5':[864,1080]};
+const S={tpl:'classic',font:'Noto Sans Devanagari',lg:1,asy:0,bg:1,ratio:'16:9',fit:'cover',vs:1,vx:0,vy:0,
+channel:'Dooars Comrades',tag:'LIVE',loc:'डुआर्स',breaking:'BREAKING NEWS',
+head:'यहाँ अपनी खबर की हेडलाइन लिखें',sub:'विषय / उप-शीर्षक',name:'नाम यहाँ',desig:'पद / परिचय',
+ticker:'यहाँ स्क्रॉल होने वाली ताज़ा खबरें लिखें • दूसरी खबर यहाँ',tlabel:'ताज़ा खबर',
+showBrk:1,showHead:1,showSub:1,showLoc:1,showTag:1,showName:0,showTick:1,showCh:1,
+hs:1,ss:1,bs:1,ls:1,ks:1,ns:1,tspeed:120,off:0,align:'left',tdir:'left',
+c1:'#0b3d91',c2:'#0a1f44',c3:'#d90429',tc:'#ffffff'};
+let saved=false;try{const sv=JSON.parse(localStorage.getItem('nfs')||'null');if(sv){Object.assign(S,sv);saved=true}}catch(e){}
+const P={classic:['#0b3d91','#0a1f44','#d90429'],interview:['#d90429','#0a1f44','#ff6b00'],split:['#f5b700','#12263a','#d90429'],topticker:['#7b2cbf','#240046','#ff0054'],reel:['#00a896','#02131a','#ef233c'],minimal:['#ffb703','#111827','#e63946']};
+const TPL=[['classic','📺 Classic Bar'],['interview','🎤 Interview'],['split','🖼 Split Frame'],['topticker','⬆ Top Ticker'],['reel','📱 Reel / Shorts'],['minimal','✨ Minimal']];
+
+/* helpers */
+let bb=null,SEL=null,tr=0;const O={},HIT=[];
+function grow(x0,y0,x1,y1){if(!bb)bb=[x0,y0,x1,y1];else{bb[0]=Math.min(bb[0],x0);bb[1]=Math.min(bb[1],y0);bb[2]=Math.max(bb[2],x1);bb[3]=Math.max(bb[3],y1)}}
+function el(k,fn){const o=O[k]||(O[k]={x:0,y:0});cx.save();cx.translate(o.x,o.y);bb=null;tr=1;fn();tr=0;if(bb){bb=[Math.max(0,bb[0]),Math.max(0,bb[1]),Math.min(W,bb[2]),Math.min(H,bb[3])];HIT.push({k,x0:bb[0]+o.x,y0:bb[1]+o.y,x1:bb[2]+o.x,y1:bb[3]+o.y});
+if(SEL==k&&!recording){cx.shadowBlur=0;cx.setLineDash([8*u,6*u]);cx.strokeStyle='#00e5ff';cx.lineWidth=2*u;cx.strokeRect(bb[0]-4*u,bb[1]-4*u,bb[2]-bb[0]+8*u,bb[3]-bb[1]+8*u);cx.setLineDash([])}}bb=null;cx.restore()}
+function ticker(y,h){el('tick',()=>tickerRaw(y,h))}
+function brk(x,y){let h=0;el('brk',()=>{h=brkRaw(x,y)});return h}
+function hb(x,w,bg,sc,k=1){const o=hbRaw(x,w,bg,sc,k);return{h:o.h,draw:y=>el('head',()=>o.draw(y))}}
+function npl(x){const o=nplRaw(x);return o&&{w:o.w,h:o.h,draw:yb=>el('name',()=>o.draw(yb))}}
+function rect(x,y,w,h,c,r=0){if(tr)grow(x,y,x+w,y+h);cx.shadowBlur=0;cx.fillStyle=c;cx.beginPath();cx.roundRect?cx.roundRect(x,y,w,h,r):cx.rect(x,y,w,h);cx.fill()}
+function font(s,w=700){cx.font=w+' '+s+'px '+F}
+function txt(t,x,y,s,c,al='left',w=700){font(s,w);if(tr){const mw=cx.measureText(t).width,x0=al=='center'?x-mw/2:al=='right'?x-mw:x;grow(x0,y-s*.6,x0+mw,y+s*.6)}cx.fillStyle=c;cx.textAlign=al;cx.textBaseline='middle';cx.shadowColor='rgba(0,0,0,.45)';cx.shadowBlur=4*u;cx.fillText(t,x,y);cx.shadowBlur=0}
+function wrap(t,s,mw,w){font(s,w);const ws=t.split(/\s+/),o=[];let l='';for(const x of ws){const n=l?l+' '+x:x;if(cx.measureText(n).width>mw&&l){o.push(l);l=x}else l=n}if(l)o.push(l);return o}
+function drawVid(x,y,w,h){cx.save();cx.beginPath();cx.rect(x,y,w,h);cx.clip();cx.fillStyle='#111';cx.fillRect(x,y,w,h);
+const src=VF||vid,vw=VF?VF.displayWidth:vid.videoWidth,vh=VF?VF.displayHeight:vid.videoHeight;
+if(VF||(vid.videoWidth&&vid.readyState>=2)){const rw=ROT%180?vh:vw,rh=ROT%180?vw:vh,k=(S.fit=='cover'?Math.max(w/rw,h/rh):Math.min(w/rw,h/rh))*S.vs;cx.translate(x+w/2+S.vx*w/100,y+h/2+S.vy*h/100);cx.rotate(ROT*Math.PI/180);cx.drawImage(src,-vw*k/2,-vh*k/2,vw*k,vh*k)}
+else{const g=cx.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,'#1f2937');g.addColorStop(1,'#374151');cx.fillStyle=g;cx.fillRect(x,y,w,h);txt(vid.src?(vid.videoWidth?'Loading…':'Video dikh nahi raha (codec support nahi)'):'Video upload karein',x+w/2,y+h/2,30*u,'#9ca3af','center')}
+cx.restore()}
+function tickH(){return 24*u*S.ks+22*u}
+function tickerRaw(y,h){if(!S.showTick)return;rect(0,y,W,h,S.c2);const sz=24*u*S.ks;let lw=0;
+if(S.tlabel){font(sz,800);lw=cx.measureText(S.tlabel).width+36*u}
+cx.save();cx.beginPath();cx.rect(lw,y,W-lw,h);cx.clip();
+const str=S.ticker+'     ◆     ';font(sz,600);const w=Math.max(cx.measureText(str).width,10);
+if(S.tdir=='static')txt(S.ticker,lw+16*u,y+h/2,sz,S.tc,'left',600);
+else{const off=(nowT()/1000*S.tspeed*u)%w;let x=S.tdir=='left'?lw-off:lw-w+off;for(;x<W;x+=w)txt(str,x,y+h/2,sz,S.tc,'left',600)}
+cx.restore();if(lw){rect(0,y,lw,h,S.c1);txt(S.tlabel,lw/2,y+h/2,sz,'#fff','center',800)}}
+function chip(t,x,y,sz,bg,fg){font(sz,800);const w=cx.measureText(t).width+28*u,h=sz+16*u;rect(x,y,w,h,bg,6*u);txt(t,x+14*u,y+h/2,sz,fg,'left',800);return w+10*u}
+function topbar(l=24*u,t=24*u,r=W-24*u){let x=l;const sz=20*u*S.ls;
+el('chips',()=>{if(S.showTag&&S.tag)x+=chip(S.tag,x,t,sz,S.c3,'#fff');
+if(S.showLoc&&S.loc)chip('📍 '+S.loc,x,t,sz,'rgba(0,0,0,.65)','#fff')});
+el('logo',()=>{if(S.showCh){if(logo){const h=56*u*S.lg,w=logo.width/logo.height*h;cx.drawImage(logo,r-w,t,w,h)}
+else if(S.channel){const sz2=22*u*S.lg;font(sz2,800);const w=cx.measureText(S.channel).width+28*u;rect(r-w,t,w,sz2+16*u,S.c1,6*u);txt(S.channel,r-w/2,t+(sz2+16*u)/2,sz2,'#fff','center',800)}}})}
+function brkH(){return S.showBrk&&S.breaking?24*u*S.bs+18*u:0}
+function brkRaw(x,y){const h=brkH();if(!h)return 0;const sz=24*u*S.bs;font(sz,800);const w=cx.measureText(S.breaking).width+36*u;
+const blink=Math.floor(nowT()/700)%2;rect(x,y-h,w,h,blink?S.c3:'#fff');txt(S.breaking,x+w/2,y-h/2,sz,blink?'#fff':S.c3,'center',800);return h}
+function hbRaw(x,w,bg,sc,k=1){const hs=40*u*S.hs*k,ss=24*u*S.ss*k,pad=20*u;
+const hl=S.showHead&&S.head?wrap(S.head,hs,w-2*pad,800):[],sl=S.showSub&&S.sub?wrap(S.sub,ss,w-2*pad,600):[];
+const h=(hl.length||sl.length)?hl.length*hs*1.2+sl.length*ss*1.25+pad*1.4:0;
+return{h,draw(y){if(!h)return;if(bg)rect(x,y,w,h,bg);const al=S.align,tx=al=='left'?x+pad:al=='center'?x+w/2:x+w-pad;let t=y+pad*.7;
+hl.forEach((l,i)=>txt(l,tx,t+hs*1.2*i+hs*.6,hs,S.tc,al,800));t+=hl.length*hs*1.2;
+sl.forEach((l,i)=>txt(l,tx,t+ss*1.25*i+ss*.625,ss,sc,al,600))}}}
+function nplRaw(x){if(!S.showName||!S.name)return null;const a=32*u*S.ns,d=20*u*S.ns;font(a,800);let w=cx.measureText(S.name).width;font(d,600);
+w=Math.max(w,S.desig?cx.measureText(S.desig).width:0)+44*u;const h1=a+20*u,h2=S.desig?d+14*u:0;
+return{w,h:h1+h2,draw(yb){rect(x,yb-h1-h2,w,h1,S.c1);txt(S.name,x+22*u,yb-h2-h1/2,a,'#fff','left',800);if(h2){rect(x,yb-h2,w,h2,S.c2);txt(S.desig,x+22*u,yb-h2/2,d,'#fff','left',600)}}}}
+function shade(top,hh){const y=top?0:H-hh,g=cx.createLinearGradient(0,top?0:H,0,top?hh:H-hh);g.addColorStop(0,'rgba(0,0,0,.85)');g.addColorStop(1,'rgba(0,0,0,0)');cx.shadowBlur=0;cx.fillStyle=g;cx.fillRect(0,y,W,hh)}
+const SUB='#ffd54a';
+
+/* templates */
+const TP={
+classic(){drawVid(0,0,W,H);topbar();let y=H-S.off*u;if(S.showTick){y-=tickH();ticker(y,tickH())}
+const b=hb(0,W,S.c2,SUB);y-=b.h;b.draw(y);if(b.h)rect(0,y,W,4*u,S.c1);y-=brk(24*u,y);const n=npl(24*u);if(n)n.draw(y-8*u)},
+interview(){drawVid(0,0,W,H);topbar();let y=H-S.off*u;if(S.showTick){y-=tickH();ticker(y,tickH())}
+const p=24*u,n=npl(p),nw=n?n.w:0,b=hb(p+nw,W-2*p-nw,'rgba(10,20,50,.92)',SUB),hh=Math.max(b.h,n?n.h:0),yy=y-14*u-hh;
+if(n)n.draw(yy+hh);b.draw(yy+hh-b.h);brk(p,yy)},
+split(){const g=cx.createLinearGradient(0,0,W,H);g.addColorStop(0,S.c2);g.addColorStop(1,'#000');cx.fillStyle=g;cx.fillRect(0,0,W,H);
+const p=24*u,land=W>=H;let tb=H-S.off*u;if(S.showTick){tb-=tickH();ticker(tb,tickH())}
+let vr,tx,tw;if(land){vr=[p,p,W*.68,tb-2*p];tx=p+vr[2]+p;tw=W-tx-p}else{vr=[p,p,W-2*p,(tb-p)*.52];tx=p;tw=W-2*p}
+rect(vr[0]-4*u,vr[1]-4*u,vr[2]+8*u,vr[3]+8*u,S.c1,4*u);drawVid(...vr);topbar(vr[0]+12*u,vr[1]+12*u,vr[0]+vr[2]-12*u);
+let y=land?p:vr[1]+vr[3]+p;const bh=brkH();if(bh){brk(tx,y+bh);y+=bh}
+const b=hb(tx,tw,'rgba(0,0,0,.35)',SUB);b.draw(y);y+=b.h+12*u;const n=npl(tx);if(n)n.draw(y+n.h)},
+topticker(){drawVid(0,0,W,H);let t0=0;if(S.showTick){ticker(0,tickH());t0=tickH()}topbar(24*u,t0+16*u);
+const mw=W*.86,x=(W-mw)/2,b=hb(x,mw,S.c1,'#fff');let y=H-(S.off+30)*u-b.h;b.draw(y);y-=brk(x,y);const n=npl(x);if(n)n.draw(y-8*u)},
+reel(){drawVid(0,0,W,H);shade(1,H*.6);shade(0,H*.3);topbar();const p=24*u;let y=(86+S.off)*u;const bh=brkH();if(bh){brk(p,y+bh);y+=bh}
+const b=hb(p,W-2*p,null,SUB,1.3);b.draw(y);y+=b.h+10*u;const n=npl(p);if(n)n.draw(y+n.h);if(S.showTick)ticker(H-tickH(),tickH())},
+minimal(){drawVid(0,0,W,H);shade(0,H*.45);topbar();let y=H-S.off*u-26*u;if(S.showTick){y=H-S.off*u-tickH();ticker(y,tickH());y-=14*u}
+const x=36*u,b=hb(x+10*u,Math.min(W*.8,W-2*x),null,'#e5e7eb');y-=b.h;b.draw(y);if(b.h)rect(x,y+8*u,6*u,b.h-16*u,S.c1);y-=brk(x,y-4*u)+4*u;const n=npl(x);if(n)n.draw(y-8*u)}
+};
+
+/* canvas + loop */
+function setRatio(k){S.ratio=k;[W,H]=R[k];cv.width=W;cv.height=H;u=Math.min(W,H)/720}
+function frame(){if(!FAST){cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,W,H);cx.shadowBlur=0;HIT.length=0;try{TP[S.tpl]()}catch(e){tr=0;bb=null;window.__lastErr=e;try{cx.restore()}catch(x){}}}
+if(vid.duration&&!seeking){$('seek').value=vid.currentTime/vid.duration*1000}
+$('tm').textContent=fmt(vid.currentTime)+' / '+fmt(vid.duration||0);$('pp').textContent=vid.paused?'▶ Play':'⏸ Pause';requestAnimationFrame(frame)}
+const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+let seeking=false;
+$('seek').oninput=e=>{seeking=true;if(vid.duration)vid.currentTime=e.target.value/1000*vid.duration};
+$('seek').onchange=()=>seeking=false;
+$('pp').onclick=()=>vid.paused?vid.play():vid.pause();
+$('snap').onclick=()=>{SEL=null;syncSel();setTimeout(()=>cv.toBlob(b=>dl(b,'frame.png')),80)};
+async function dl(b,n){if(window.AndroidBridge&&AndroidBridge.saveBegin){try{if(!AndroidBridge.saveBegin(n,b.type||'application/octet-stream'))throw 0;const CH=3*262144;for(let o=0;o<b.size;o+=CH){const u8=new Uint8Array(await b.slice(o,o+CH).arrayBuffer());let t='';for(let i=0;i<u8.length;i+=8192)t+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));if(!AndroidBridge.saveChunk(btoa(t)))throw 0}AndroidBridge.saveEnd();return}catch(e){try{AndroidBridge.saveAbort()}catch(x){}}}
+const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click()}
+
+/* export */
+let mr=null;
+$('exp').onclick=()=>{
+if(recording){mr&&mr.stop();return}
+if(!vid.videoWidth)return alert('Pehle video upload karein.');
+const st=cv.captureStream(30);
+try{const vs=(vid.captureStream||vid.mozCaptureStream).call(vid);vs.getAudioTracks().forEach(t=>st.addTrack(t))}catch(e){}
+const mt=['video/mp4;codecs=avc1','video/webm;codecs=vp9,opus','video/webm'].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t));
+if(!mt)return alert('Is browser mein export support nahi hai. Chrome use karein.');
+const ch=[];mr=new MediaRecorder(st,{mimeType:mt,videoBitsPerSecond:6e6});
+mr.ondataavailable=e=>e.data.size&&ch.push(e.data);
+mr.onstop=()=>{recording=false;vid.loop=true;vid.onended=null;$('rec').style.display='none';$('exp').textContent='⬇ Normal Export';dl(new Blob(ch,{type:mt}),'news-video.'+(mt.includes('mp4')?'mp4':'webm'))};
+vid.loop=false;vid.currentTime=0;vid.onended=()=>mr.stop();vid.play();mr.start();recording=true;
+$('rec').style.display='inline';$('exp').textContent='■ Stop & Save'};
+
+/* fast export */
+let curFile=null,VT=null,fcancel=false,FAST=false,done=false,VF=null,ROT=0;
+const nowT=()=>VT!==null?VT:performance.now();
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const once=(el,ev)=>new Promise(r=>el.addEventListener(ev,r,{once:true}));
+const te=new TextEncoder();
+function cat(a){let n=0;for(const x of a)n+=x.length;const o=new Uint8Array(n);let p=0;for(const x of a){o.set(x,p);p+=x.length}return o}
+function sz(n){const b=new Uint8Array(8);b[0]=1;for(let i=7;i>=1;i--){b[i]=n%256;n=Math.floor(n/256)}return b}
+function E(id,...k){const d=cat(k);return cat([Uint8Array.from(id),sz(d.length),d])}
+const U=v=>{const a=[];do{a.unshift(v%256);v=Math.floor(v/256)}while(v>0);return Uint8Array.from(a)};
+const F32=v=>{const b=new Uint8Array(4);new DataView(b.buffer).setFloat32(0,v);return b};
+const F64=v=>{const b=new Uint8Array(8);new DataView(b.buffer).setFloat64(0,v);return b};
+function mux(vc,ac,w,h,cid,dur){
+const hdr=E([0x1A,0x45,0xDF,0xA3],E([0x42,0x86],U(1)),E([0x42,0xF7],U(1)),E([0x42,0xF2],U(4)),E([0x42,0xF3],U(8)),E([0x42,0x82],te.encode('webm')),E([0x42,0x87],U(4)),E([0x42,0x85],U(2)));
+const info=E([0x15,0x49,0xA9,0x66],E([0x2A,0xD7,0xB1],U(1e6)),E([0x4D,0x80],te.encode('NFS')),E([0x57,0x41],te.encode('NFS')),E([0x44,0x89],F64(dur*1000)));
+const tr=[E([0xAE],E([0xD7],U(1)),E([0x73,0xC5],U(1)),E([0x83],U(1)),E([0x86],te.encode(cid)),E([0xE0],E([0xB0],U(w)),E([0xBA],U(h))))];
+if(ac.length){const hd=new Uint8Array(19);hd.set(te.encode('OpusHead'));hd[8]=1;hd[9]=2;hd[10]=312&255;hd[11]=312>>8;hd.set([0x80,0xBB,0,0],12);
+tr.push(E([0xAE],E([0xD7],U(2)),E([0x73,0xC5],U(2)),E([0x83],U(2)),E([0x86],te.encode('A_OPUS')),E([0x56,0xAA],U(6500000)),E([0x56,0xBB],U(80000000)),E([0x63,0xA2],hd),E([0xE1],E([0xB5],F32(48000)),E([0x9F],U(2)))))}
+const trk=E([0x16,0x54,0xAE,0x6B],...tr);
+const bl=[...vc.map(x=>({t:Math.round(x.t/1000),d:x.d,k:x.key,n:1})),...ac.map(x=>({t:Math.round(x.t/1000),d:x.d,k:1,n:2}))].sort((a,b)=>a.t-b.t||a.n-b.n);
+const parts=[];let cs=-1e9,cur=[];const fl=()=>{if(cur.length)parts.push(E([0x1F,0x43,0xB6,0x75],E([0xE7],U(cs)),...cur));cur=[]};
+for(const b of bl){if(b.t-cs>4000||(b.n==1&&b.k&&b.t-cs>1500)){fl();cs=Math.max(0,b.t)}const r=b.t-cs;cur.push(E([0xA3],Uint8Array.from([0x80|b.n,(r>>8)&255,r&255,b.k?0x80:0]),b.d))}
+fl();
+return new Blob([hdr,E([0x18,0x53,0x80,0x67],info,trk,...parts)],{type:'video/webm'})}
+async function encodeAudio(out,cancelled,aac){
+const ab=await curFile.arrayBuffer(),ac=new AudioContext({sampleRate:48000});let buf=await ac.decodeAudioData(ab);ac.close();
+if(buf.sampleRate!==48000){const o2=new OfflineAudioContext(2,Math.ceil(buf.duration*48000),48000),sr=o2.createBufferSource();sr.buffer=buf;sr.connect(o2.destination);sr.start();buf=await o2.startRendering()}
+let e2=null,ad0=null;
+const ae=new AudioEncoder({output:(c,m)=>{const d=new Uint8Array(c.byteLength);c.copyTo(d);out.push({t:c.timestamp,d});if(aac&&m&&m.decoderConfig&&m.decoderConfig.description&&!ad0)ad0=new Uint8Array(m.decoderConfig.description)},error:e=>e2=e});
+ae.configure(aac?{codec:'mp4a.40.2',sampleRate:48000,numberOfChannels:2,bitrate:128000,aac:{format:'aac'}}:{codec:'opus',sampleRate:48000,numberOfChannels:2,bitrate:128000});
+const c0=buf.getChannelData(0),c1=buf.numberOfChannels>1?buf.getChannelData(1):c0,N=buf.length,CH=9600;
+const off=Math.round((+S.asy||0)*48),pad=Math.max(0,off),skip=Math.max(0,-off);
+for(let j=0;j<pad;j+=CH){const k=Math.min(CH,pad-j),z=new AudioData({format:'f32-planar',sampleRate:48000,numberOfFrames:k,numberOfChannels:2,timestamp:Math.round(j/48000*1e6),data:new Float32Array(k*2)});ae.encode(z);z.close()}
+for(let i=skip;i<N;i+=CH){if(cancelled()||e2)break;const k=Math.min(CH,N-i),a=new Float32Array(k*2);a.set(c0.subarray(i,i+k),0);a.set(c1.subarray(i,i+k),k);
+const ad=new AudioData({format:'f32-planar',sampleRate:48000,numberOfFrames:k,numberOfChannels:2,timestamp:Math.round((pad+i-skip)/48000*1e6),data:a});ae.encode(ad);ad.close();if(ae.encodeQueueSize>10)await sleep(4)}
+await ae.flush();ae.close();if(e2)throw e2;return ad0}
+const Z=n=>new Uint8Array(n),u32=(...a)=>{const b=Z(a.length*4),v=new DataView(b.buffer);a.forEach((x,i)=>v.setUint32(i*4,x>>>0));return b},u16=(...a)=>{const b=Z(a.length*2),v=new DataView(b.buffer);a.forEach((x,i)=>v.setUint16(i*2,x));return b};
+const U32A=a=>{const b=Z(a.length*4),v=new DataView(b.buffer);a.forEach((x,i)=>v.setUint32(i*4,x>>>0));return b};
+const B4=(t,...k)=>{const d=cat(k);return cat([u32(d.length+8),te.encode(t),d])};
+const FB=(t,ver,fl,...k)=>B4(t,u32((ver<<24)|fl),...k);
+const MAT=u32(0x10000,0,0,0,0x10000,0,0,0,0x40000000);
+function avc1Entry(w,h,d){return B4('avc1',Z(6),u16(1),Z(16),u16(w,h),u32(0x480000,0x480000,0),u16(1),Z(32),u16(0x18,0xFFFF),B4('avcC',d))}
+function mp4aEntry(asc){const dsi=[0x05,asc.length,...asc],db=[0x40,0x15,0,0,0,...u32(0),...u32(128000),...dsi],dc=[0x04,db.length,...db],eb=[0,0,0,...dc,0x06,1,2],es=Uint8Array.from([0x03,eb.length,...eb]);return B4('mp4a',Z(6),u16(1),Z(8),u16(2,16),u16(0,0),u32(48000*65536),FB('esds',0,0,es))}
+function mkTrak(id,type,ts,smp,entry,offs,w,h,st=0){
+const n=smp.length,runs=[];for(const s of smp){const l=runs[runs.length-1];if(l&&l[1]==s.delta)l[0]++;else runs.push([1,s.delta])}
+const dur=smp.reduce((a,s)=>a+s.delta,0),stts=FB('stts',0,0,u32(runs.length),U32A(runs.flat()));
+const ks=[];smp.forEach((s,i)=>s.key&&ks.push(i+1));
+const stss=type=='vide'?FB('stss',0,0,u32(ks.length),U32A(ks)):Z(0);
+const stsz=FB('stsz',0,0,u32(0,n),U32A(smp.map(s=>s.size))),stco=FB('stco',0,0,u32(n),U32A(offs));
+const stbl=B4('stbl',FB('stsd',0,0,u32(1),entry),stts,stss,FB('stsc',0,0,u32(1,1,1,1)),stsz,stco);
+const minf=B4('minf',type=='vide'?FB('vmhd',0,1,u16(0,0,0,0)):FB('smhd',0,0,u16(0,0)),B4('dinf',FB('dref',0,0,u32(1),FB('url ',0,1))),stbl);
+const mdhd=FB('mdhd',0,0,u32(0,0,ts,dur),u16(0x55C4,0)),hdlr=FB('hdlr',0,0,u32(0),te.encode(type),u32(0,0,0),te.encode(type=='vide'?'VideoHandler':'SoundHandler'),Z(1));
+const stMs=Math.round(st*1000/ts),dm=Math.round(dur*1000/ts)+stMs,tkhd=FB('tkhd',0,7,u32(0,0,id,0,dm),u32(0,0),u16(0,0,type=='soun'?0x100:0,0),MAT,u32(w*65536,h*65536));
+const edts=st>0?B4('edts',FB('elst',0,0,u32(2),u32(stMs,0xFFFFFFFF,0x10000),u32(dm-stMs,0,0x10000))):Z(0);
+return{box:B4('trak',tkhd,edts,B4('mdia',mdhd,hdlr,minf)),durMs:dm}}
+function muxMp4(vc,ac,w,h,vE,aE){
+const prep=(arr,ts,minD)=>{arr.sort((a,b)=>a.t-b.t);let p=-1;const o=arr.map(x=>{let d=Math.max(Math.round(x.t*ts/1e6),p+1);p=d;return{dts:d,size:x.d.length,d:x.d,key:x.key}});for(let i=0;i<o.length;i++)o[i].delta=i<o.length-1?o[i+1].dts-o[i].dts:(i?o[i-1].delta:minD);return o};
+const V=prep(vc,90000,3000),A=aE&&ac.length?prep(ac,48000,1024):[];
+const all=[...V.map(s=>({s,tr:0,tm:s.dts/90000})),...A.map(s=>({s,tr:1,tm:s.dts/48000}))].sort((a,b)=>a.tm-b.tm||a.tr-b.tr);
+const build=(ov,oa)=>{const t1=mkTrak(1,'vide',90000,V,vE,ov,w,h,V[0].dts),t2=A.length?mkTrak(2,'soun',48000,A,aE,oa,0,0,A[0].dts):null,dm=Math.max(t1.durMs,t2?t2.durMs:0);
+return B4('moov',FB('mvhd',0,0,u32(0,0,1000,dm),u32(0x10000),u16(0x100,0),u32(0,0),MAT,u32(0,0,0,0,0,0),u32(t2?3:2)),t1.box,...(t2?[t2.box]:[]))};
+const ftyp=B4('ftyp',te.encode('isom'),u32(512),te.encode('isom'),te.encode('iso2'),te.encode('avc1'),te.encode('mp41'));
+const m0=build(V.map(()=>0),A.map(()=>0)),base=ftyp.length+m0.length+8;let pos=base;const ov=[],oa=[];
+for(const e of all){(e.tr?oa:ov).push(pos);pos+=e.s.size}
+return new Blob([ftyp,build(ov,oa),u32(pos-base+8),te.encode('mdat'),...all.map(e=>e.s.d)],{type:'video/mp4'})}
+async function demux(file){
+const size=file.size;let pos=0,moov=null;
+while(pos+8<=size){const h=new DataView(await file.slice(pos,pos+16).arrayBuffer());let sz=h.getUint32(0),hd=8;const t=String.fromCharCode(h.getUint8(4),h.getUint8(5),h.getUint8(6),h.getUint8(7));
+if(sz==1){sz=Number(h.getBigUint64(8));hd=16}else if(sz==0)sz=size-pos;if(sz<hd)break;
+if(t=='moov'){moov=new Uint8Array(await file.slice(pos+hd,pos+sz).arrayBuffer());break}pos+=sz}
+if(!moov)throw{nosupport:1};
+const dv=new DataView(moov.buffer);
+const bx=(s,e)=>{const o=[];while(s+8<=e){let sz=dv.getUint32(s),hd=8;if(sz==1){sz=Number(dv.getBigUint64(s+8));hd=16}else if(sz==0)sz=e-s;if(sz<hd)break;o.push({t:String.fromCharCode(moov[s+4],moov[s+5],moov[s+6],moov[s+7]),s:s+hd,e:s+sz});s+=sz}return o};
+const fd=(b,t)=>b&&bx(b.s,b.e).find(x=>x.t==t);
+let trak=null;
+for(const t of bx(0,moov.length).filter(x=>x.t=='trak')){const hd=fd(fd(t,'mdia'),'hdlr');if(hd&&String.fromCharCode(moov[hd.s+8],moov[hd.s+9],moov[hd.s+10],moov[hd.s+11])=='vide'){trak=t;break}}
+if(!trak)throw{nosupport:1};
+const tk=fd(trak,'tkhd'),md=fd(trak,'mdia'),mh=fd(md,'mdhd'),stbl=fd(fd(md,'minf'),'stbl');
+if(!tk||!mh||!stbl)throw{nosupport:1};
+const mo=tk.s+(moov[tk.s]?52:40),ma=dv.getInt32(mo),mb=dv.getInt32(mo+4),mc=dv.getInt32(mo+12),md2=dv.getInt32(mo+16);
+const rot=(mb>0&&mc<0)?90:(ma<0&&md2<0)?180:(mb<0&&mc>0)?270:0;
+const ts=dv.getUint32(mh.s+(moov[mh.s]?20:12));
+const mvh=fd({s:0,e:moov.length},'mvhd'),mts=mvh?dv.getUint32(mvh.s+(moov[mvh.s]?20:12)):1000;
+let emt=0,edl=0;const eds=fd(trak,'edts'),elb=eds&&fd(eds,'elst');
+if(elb){const v=moov[elb.s],n=dv.getUint32(elb.s+4);let o=elb.s+8,fnd=false;for(let i=0;i<n;i++){let sd,mt;if(v){sd=Number(dv.getBigUint64(o));mt=Number(dv.getBigInt64(o+8));o+=20}else{sd=dv.getUint32(o);mt=dv.getInt32(o+4);o+=12}if(mt==-1){if(!fnd)edl+=sd/mts}else if(!fnd){emt=mt;fnd=true}}}
+const sd=fd(stbl,'stsd'),en=bx(sd.s+8,sd.e)[0],w=dv.getUint16(en.s+24),h=dv.getUint16(en.s+26);
+const cb=bx(en.s+78,en.e).find(x=>['avcC','hvcC','vpcC'].includes(x.t));
+if(!cb)throw{nosupport:1};
+const desc=moov.slice(cb.s,cb.e);let codec,hex=x=>x.toString(16).padStart(2,'0');
+if(cb.t=='avcC')codec='avc1.'+hex(desc[1])+hex(desc[2])+hex(desc[3]);
+else if(cb.t=='hvcC'){const b1=desc[1],cp=dv.getUint32(cb.s+2);let r=0;for(let i=0;i<32;i++)r=((r<<1)|((cp>>>i)&1))>>>0;const ar=[...desc.slice(6,12)];while(ar.length>1&&ar[ar.length-1]==0)ar.pop();
+codec=(en.t=='hev1'?'hev1':'hvc1')+'.'+['','A','B','C'][b1>>6]+(b1&31)+'.'+r.toString(16)+'.'+((b1>>5)&1?'H':'L')+desc[12]+'.'+ar.map(x=>x.toString(16).toUpperCase()).join('.')}
+else codec='vp09.'+[moov[cb.s+4],moov[cb.s+5],moov[cb.s+6]>>4].map(x=>String(x).padStart(2,'0')).join('.');
+const rd=(b)=>{const n=dv.getUint32(b.s+4),a=[];let o=b.s+8;for(let i=0;i<n;i++){a.push([dv.getUint32(o),dv.getInt32(o+4)]);o+=8}return a};
+const stts=rd(fd(stbl,'stts')),cttsB=fd(stbl,'ctts'),ctts=cttsB?rd(cttsB):null;
+const zb=fd(stbl,'stsz'),fix=dv.getUint32(zb.s+4),N=dv.getUint32(zb.s+8),sizes=[];
+for(let i=0;i<N;i++)sizes.push(fix||dv.getUint32(zb.s+12+i*4));
+const scB=fd(stbl,'stsc'),scn=dv.getUint32(scB.s+4),sc=[];for(let i=0;i<scn;i++)sc.push([dv.getUint32(scB.s+8+i*12),dv.getUint32(scB.s+12+i*12)]);
+const co=fd(stbl,'stco'),c64=!co?fd(stbl,'co64'):null,cob=co||c64;if(!cob)throw{nosupport:1};
+const cn=dv.getUint32(cob.s+4),offs=[];for(let i=0;i<cn;i++)offs.push(c64?Number(dv.getBigUint64(cob.s+8+i*8)):dv.getUint32(cob.s+8+i*4));
+const ssB=fd(stbl,'stss'),keys=ssB?new Set():null;if(ssB){const k=dv.getUint32(ssB.s+4);for(let i=0;i<k;i++)keys.add(dv.getUint32(ssB.s+8+i*4)-1)}
+const sm=[];let si=0,ci=0;
+for(let c=0;c<cn&&si<N;c++){while(sc.length>ci+1&&sc[ci+1][0]<=c+1)ci++;let off=offs[c];for(let j=0;j<sc[ci][1]&&si<N;j++){sm.push({off,size:sizes[si]});off+=sizes[si];si++}}
+if(!sm.length||sm.length!=N)throw{nosupport:1};
+let dts=0,i=0;for(const[c,d]of stts)for(let j=0;j<c&&i<N;j++){sm[i].dts=dts;dts+=d;i++}
+if(ctts){i=0;for(const[c,d]of ctts)for(let j=0;j<c&&i<N;j++){sm[i].cts=sm[i].dts+d;i++}}
+for(const x of sm){if(x.cts===undefined)x.cts=x.dts}
+sm.forEach((x,i)=>{x.ts=Math.round(((x.cts-emt)/ts+edl)*1e6);x.key=keys?keys.has(i):true});
+return{codec,desc:cb.t=='vpcC'?null:desc,w,h,rot,samples:sm}}
+async function decodeExport(o){
+const info=await demux(curFile),N=info.samples.length;
+const cfg={codec:info.codec,codedWidth:info.w,codedHeight:info.h};if(info.desc)cfg.description=info.desc;
+let sup;try{sup=await VideoDecoder.isConfigSupported(cfg)}catch(e){throw{nosupport:1}}
+if(!sup.supported)throw{nosupport:1};
+const keys=[];info.samples.forEach((s,i)=>s.key&&keys.push(i));
+const M=Math.max(1,Math.min(o.M,Math.floor(N/90))),bd=[0];
+for(let k=1;k<M;k++){const t=Math.floor(N*k/M),b=keys.find(i=>i>=t);if(b!==undefined&&b>bd[bd.length-1])bd.push(b)}bd.push(N);
+let total=0,e2=null;const t0=performance.now(),extra=[];
+const tm=setInterval(()=>o.say('⚡ Super-fast export '+Math.round(total/N*100)+'% • '+(bd.length-1)+' parallel • '+Math.round(total/Math.max(.1,(performance.now()-t0)/1000))+' fps'),300);
+const seg=async(a,b,ve)=>{let n=0,fl=0,win=null,ws=0,we=0;
+const dec=new VideoDecoder({output:f=>{try{if(f.timestamp<0){total++;f.close();fl--;return}VF=f;ROT=info.rot;VT=f.timestamp/1000;cx.clearRect(0,0,W,H);HIT.length=0;TP[S.tpl]();VF=null;ROT=0;
+if(o.q<1)o.octx.drawImage(cv,0,0,o.ew,o.eh);const nf=new VideoFrame(o.q<1?o.oc:cv,{timestamp:f.timestamp});ve.encode(nf,{keyFrame:n%60==0});nf.close();n++;total++}catch(x){e2=x}f.close();fl--},error:x=>e2=x});
+dec.configure(cfg);
+try{for(let i=a;i<b;i++){if(fcancel||e2||o.err())break;
+while((dec.decodeQueueSize>12||fl>20||ve.encodeQueueSize>6)&&!fcancel&&!e2&&!o.err())await sleep(3);
+const s=info.samples[i];
+if(!win||s.off<ws||s.off+s.size>we){ws=s.off;we=Math.min(curFile.size,ws+Math.max(8<<20,s.size));win=new Uint8Array(await curFile.slice(ws,we).arrayBuffer())}
+dec.decode(new EncodedVideoChunk({type:s.key?'key':'delta',timestamp:s.ts,data:win.subarray(s.off-ws,s.off-ws+s.size)}));fl++}
+if(!fcancel&&!e2)await dec.flush()}catch(x){e2=e2||x}
+try{dec.close()}catch(x){}
+if(e2&&!total)throw{nosupport:1};if(e2)throw e2};
+try{await Promise.all(bd.slice(0,-1).map((a,k)=>{let v=o.ve;if(k){v=o.mk();extra.push(v)}return seg(a,bd[k+1],v)}));
+for(const v of extra){await v.flush();v.close()}}
+catch(x){for(const v of extra){try{v.close()}catch(y){}}throw x}
+finally{clearInterval(tm);VF=null;ROT=0}
+if(fcancel)throw 'cancel';return true}
+/* background keep-alive + notification */
+let ka=null,kaRes=null,kaT=0;
+const NB=window.AndroidBridge;
+function nativeStart(){try{NB&&NB.exportStart()}catch(e){}}
+function nativeProg(t){try{const m=/(\d+)%/.exec(t);if(NB&&m)NB.exportProgress(+m[1],'')}catch(e){}}
+function nativeStop(ok,name){try{NB&&NB.exportDone(!!ok,name||'')}catch(e){}}
+window.nfsCancel=()=>{fcancel=true;try{$('rec').textContent='Cancel ho raha hai…'}catch(e){}const b=$('fexp');if(b&&b.dataset.busy)setTimeout(()=>{if(b.dataset.busy)forceReset()},2500)};
+function mkWav(){const sr=8000,n=sr*6,b=new ArrayBuffer(44+n*2),v=new DataView(b),w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+for(let i=0;i<n;i++)v.setInt16(44+i*2,(Math.random()*2-1)*3,true);return URL.createObjectURL(new Blob([b],{type:'audio/wav'}))}
+function kaMeta(t,a){try{if('mediaSession' in navigator){navigator.mediaSession.metadata=new MediaMetadata({title:t,artist:a||'News Frame Studio',album:'Video export'})}}catch(e){}}
+function keepAliveStart(){
+try{if(!ka){ka=new Audio(mkWav());ka.loop=true}ka.play().catch(()=>{})}catch(e){}
+try{if(navigator.locks)navigator.locks.request('nfs-export',()=>new Promise(r=>{kaRes=r}))}catch(e){}
+try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(e){}
+kaMeta('⚡ Export shuru…');
+try{if('mediaSession' in navigator){navigator.mediaSession.playbackState='playing';
+navigator.mediaSession.setActionHandler('pause',()=>{ka&&ka.play().catch(()=>{})});
+navigator.mediaSession.setActionHandler('play',()=>{ka&&ka.play().catch(()=>{})});
+navigator.mediaSession.setActionHandler('stop',()=>{fcancel=true})}}catch(e){}}
+function kaProgress(t){const m=/(\d+)%/.exec(t);if(!m||!ka||Date.now()-kaT<1000)return;kaT=Date.now();kaMeta('⚡ Export '+m[1]+'%','Video export ho raha hai…');
+try{navigator.mediaSession.setPositionState({duration:100,position:Math.min(100,+m[1]),playbackRate:1})}catch(e){}}
+function keepAliveStop(ok,name){
+try{ka&&ka.pause()}catch(e){}try{kaRes&&kaRes()}catch(e){}kaRes=null;
+kaMeta(ok?'✅ Export ho gaya':'Export roka gaya',ok?(name||''):'News Frame Studio');
+try{if('mediaSession' in navigator){navigator.mediaSession.playbackState='paused';['pause','play','stop'].forEach(a=>{try{navigator.mediaSession.setActionHandler(a,null)}catch(e){}})}}catch(e){}
+try{if(ok&&'Notification' in window&&Notification.permission==='granted'&&document.hidden)new Notification('✅ Export ho gaya',{body:name||'Video taiyar hai'})}catch(e){}
+setTimeout(()=>{try{if(!recording)navigator.mediaSession.metadata=null}catch(e){}},15000)}
+let lastB=null;
+async function fastExport(){
+if(recording)return;
+if(!vid.videoWidth)return alert('Pehle video upload karein.');
+if(!window.VideoEncoder)return alert('Fast Export ke liye latest Chrome ya Edge chahiye. Tab tak "Normal Export" use karein.');
+const btn=$('fexp'),st=$('rec'),say=t=>{st.textContent=t+(t.startsWith('⚡')?'  🔒 export ke dauraan badlav lock hain':'');if(S.bg&&!NB)kaProgress(t);nativeProg(t)};
+recording=true;FAST=true;done=false;fcancel=false;SEL=null;document.body.classList.add('locked');if(S.bg&&!NB)keepAliveStart();nativeStart();btn.dataset.busy=1;btn.textContent='■ Cancel';st.style.display='inline';$('sv').style.display=$('sh').style.display='none';
+let rate=+$('fsp').value,err=null,vch=[],ach=[],vdesc=null,adesc=null,wl=null,okDone=false,vis=null,oname='';const dur=vid.duration;
+try{
+try{wl=await navigator.wakeLock.request('screen')}catch(e){}
+vis=async()=>{if(!document.hidden&&recording){try{wl=await navigator.wakeLock.request('screen')}catch(e){}}};document.addEventListener('visibilitychange',vis);
+vid.pause();vid.loop=false;vid.muted=true;
+if(vid.currentTime>0.01){vid.currentTime=0;await once(vid,'seeked')}
+const q=+$('fq').value,ew=Math.round(W*q/2)*2,eh=Math.round(H*q/2)*2,oc=document.createElement('canvas'),octx=oc.getContext('2d');oc.width=ew;oc.height=eh;
+let fmt='webm',cfg=null;
+try{const lv=ew*eh>2.1e6?'2a':ew*eh>9.2e5?'28':'1f';
+for(const hw of ['prefer-hardware','no-preference'])for(const pr of ['64','4d','42']){if(cfg)break;const c={codec:'avc1.'+pr+'00'+lv,width:ew,height:eh,bitrate:Math.round(ew*eh*30*.11),framerate:30,hardwareAcceleration:hw,avc:{format:'avc'}};if((await VideoEncoder.isConfigSupported(c)).supported)cfg=c}
+let aacOk=false;if(cfg&&window.AudioEncoder)aacOk=(await AudioEncoder.isConfigSupported({codec:'mp4a.40.2',sampleRate:48000,numberOfChannels:2,bitrate:128000,aac:{format:'aac'}})).supported;
+if(cfg&&(aacOk||!curFile||dur>600))fmt='mp4';else cfg=null}catch(e){cfg=null;fmt='webm'}
+if(!cfg)cfg={codec:'vp8',latencyMode:'realtime',width:ew,height:eh,bitrate:Math.round(ew*eh*30*.15),framerate:30};
+let sup=await VideoEncoder.isConfigSupported(cfg);
+if(!sup.supported&&fmt=='webm'){cfg.codec='vp09.00.40.08';sup=await VideoEncoder.isConfigSupported(cfg);if(!sup.supported)throw 'Is browser mein video encoder support nahi';}
+const cid=cfg.codec=='vp8'?'V_VP8':'V_VP9';
+if(curFile&&dur<=600){say('⚡ Awaaz taiyar ho rahi hai…');try{adesc=await encodeAudio(ach,()=>fcancel,fmt=='mp4')}catch(e){ach=[];say('Awaaz decode nahi hui, bina awaaz export hoga…');await sleep(1200)}}
+if(fcancel)throw 'cancel';
+const mk=()=>{const e=new VideoEncoder({output:(c,m)=>{const d=new Uint8Array(c.byteLength);c.copyTo(d);vch.push({t:c.timestamp,d,key:c.type=='key'});if(m&&m.decoderConfig&&m.decoderConfig.description&&!vdesc)vdesc=new Uint8Array(m.decoderConfig.description)},error:e2=>err=e2});e.configure(cfg);return e};
+const ve=mk();let ok=false;
+if(/\.(mp4|mov|m4v)$/i.test(curFile?curFile.name:'')){try{ok=await decodeExport({ve,mk,q,ew,eh,oc,octx,say,M:(fmt=='mp4'||/Android/i.test(navigator.userAgent))?1:Math.max(1,Math.min(4,Math.floor((navigator.hardwareConcurrency||4)/2))),err:()=>err})}catch(e){if(e==='cancel'||!(e&&e.nosupport))throw e;say('Seedha decode possible nahi, playback method chal raha hai…')}}
+if(!ok){let n=0,lp=0;const t0=performance.now();vid.playbackRate=rate;
+const fin=new Promise(res=>{vid.onended=res;
+const step=async(_,m)=>{
+if(done||fcancel||err||vid.ended)return res();
+if(m.presentedFrames-lp>1&&rate>1){rate=Math.max(1,rate*.85);vid.playbackRate=rate}
+lp=m.presentedFrames;VT=m.mediaTime*1000;
+cx.clearRect(0,0,W,H);HIT.length=0;TP[S.tpl]();
+if(q<1)octx.drawImage(cv,0,0,ew,eh);const f=new VideoFrame(q<1?oc:cv,{timestamp:Math.round(m.mediaTime*1e6)});ve.encode(f,{keyFrame:n%60==0});f.close();n++;
+if(ve.encodeQueueSize>6){vid.pause();while(ve.encodeQueueSize>2&&!fcancel)await sleep(8);vid.play().catch(()=>{})}
+const p=m.mediaTime/dur,sp=(performance.now()-t0)/1000;
+say('⚡ Export '+Math.round(p*100)+'% • baaki ~'+Math.max(0,Math.round(sp/Math.max(p,.01)-sp))+'s');
+vid.requestVideoFrameCallback(step)};
+vid.requestVideoFrameCallback(step)});
+await vid.play();await fin;done=true;vid.pause()}
+if(fcancel)throw 'cancel';
+say('⚡ File ban rahi hai…');await ve.flush();ve.close();if(err)throw err;
+const last=vch.reduce((a,x)=>Math.max(a,x.t),0)/1e6;
+let blob,name;
+if(fmt=='mp4'){if(!vdesc)throw 'H.264 config nahi mili';if(ach.length&&!adesc)throw 'AAC config nahi mili';
+blob=muxMp4(vch,ach,ew,eh,avc1Entry(ew,eh,vdesc),ach.length?mp4aEntry(adesc):null);name='news-video.mp4'}
+else{blob=mux(vch,ach,ew,eh,cid,Math.max(dur,last));name='news-video.webm'}
+okDone=true;oname=name;lastB={blob,name};dl(blob,name);$('sv').style.display=$('sh').style.display='';
+say('✅ Ho gaya! '+name+' ('+(blob.size/1048576).toFixed(1)+' MB)'+(ach.length?'':' (bina awaaz)'));
+}catch(e){if(e==='cancel')say('Cancel ho gaya');else{say('');alert('Fast Export fail hua: '+(e.message||e)+'\nNormal Export try karein.')}}
+finally{document.body.classList.remove('locked');document.removeEventListener('visibilitychange',vis);if(S.bg&&!NB)keepAliveStop(okDone,oname);nativeStop(okDone,oname);try{wl&&wl.release()}catch(e){}VT=null;VF=null;ROT=0;FAST=false;done=true;recording=false;delete btn.dataset.busy;btn.textContent='⚡ Fast Export';vid.onended=null;vid.playbackRate=1;vid.loop=true;vid.muted=false;vid.currentTime=0;vid.play().catch(()=>{});
+setTimeout(()=>{if(!recording){st.style.display='none';st.textContent='● Recording… tab khula rakhein'}},9000)}}
+$('sv').onclick=()=>lastB&&dl(lastB.blob,lastB.name);
+$('sh').onclick=async()=>{if(!lastB)return;if(window.AndroidBridge&&AndroidBridge.shareLast){AndroidBridge.shareLast();return}try{const f=new File([lastB.blob],lastB.name,{type:lastB.blob.type});if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f],title:'News video'});else alert('Is device par Share support nahi hai, Save use karein.')}catch(e){}};
+function forceReset(){try{keepAliveStop(false)}catch(e){}FAST=false;recording=false;done=true;VT=null;VF=null;ROT=0;const b=$('fexp');delete b.dataset.busy;b.textContent='⚡ Fast Export';document.body.classList.remove('locked');$('rec').textContent='Export roka gaya';vid.onended=null;vid.playbackRate=1;vid.loop=true;vid.muted=false;vid.play().catch(()=>{})}
+$('fexp').onclick=()=>{const b=$('fexp');if(b.dataset.busy){fcancel=true;$('rec').textContent='Cancel ho raha hai…';setTimeout(()=>{if(b.dataset.busy)forceReset()},2500);return}fastExport()};
+
+/* UI */
+const side=$('side');
+const ORDER=['video','frame','frame','text','layout','frame'];let ai=0;
+function add(title,items,open=true,tab){const d=document.createElement('details');d.open=open;d.dataset.tab=tab||ORDER[ai++]||'layout';d.innerHTML='<summary>'+title+'</summary>';items.forEach(i=>d.appendChild(i));side.appendChild(d);return d}
+function lab(t,el,cls){const l=document.createElement('label');if(cls)l.className=cls;l.append(t);l.appendChild(el);return l}
+function tin(k,t,ml){const e=document.createElement(ml?'textarea':'input');if(ml)e.rows=2;e.value=S[k];e.oninput=()=>S[k]=e.value;return lab(t,e)}
+function rng(k,t,a,b,s){const e=document.createElement('input');e.type='range';e.min=a;e.max=b;e.step=s;e.value=S[k];e.id='f_'+k;e.oninput=()=>S[k]=+e.value;return lab(t,e)}
+function chk(k,t){const e=document.createElement('input');e.type='checkbox';e.checked=!!S[k];e.onchange=()=>S[k]=e.checked?1:0;const l=document.createElement('label');l.className='c';l.append(e,t);return l}
+function sel(k,t,o,cb){const e=document.createElement('select');o.forEach(([v,n])=>e.add(new Option(n,v)));e.value=S[k];e.id='f_'+k;e.onchange=()=>{S[k]=e.value;cb&&cb()};return lab(t,e)}
+function col(k,t){const e=document.createElement('input');e.type='color';e.value=S[k];e.id='f_'+k;e.oninput=()=>S[k]=e.value;return lab(t,e)}
+function file(t,acc,cb){const e=document.createElement('input');e.type='file';e.accept=acc;e.onchange=()=>e.files[0]&&cb(e.files[0]);return lab(t,e)}
+
+const tplHint=document.createElement('div');tplHint.className='hint';
+const toastEl=document.createElement('div');toastEl.id='toast';$('stage').appendChild(toastEl);let ttm=0;
+function toastMsg(t){toastEl.textContent=t;toastEl.style.opacity=1;clearTimeout(ttm);ttm=setTimeout(()=>toastEl.style.opacity=0,1300)}
+const tb=document.createElement('div');tb.className='grid';
+TPL.forEach(([id,n])=>{const b=document.createElement('button');b.className='g';b.textContent=n;b.onclick=()=>{S.tpl=id;toastMsg('Frame: '+n);for(const k in O)O[k]={x:0,y:0};P[id].forEach((c,i)=>{S['c'+(i+1)]=c;$('f_c'+(i+1)).value=c});tplHint.textContent=id=='reel'?'💡 Reel template ke liye Video tab mein Frame size 9:16 chunein.':'';
+S.align=id=='topticker'?'center':'left';$('f_align').value=S.align;[...tb.children].forEach(x=>x.classList.toggle('on',x===b))};if(id==S.tpl)b.classList.add('on');tb.appendChild(b)});
+
+add('🎬 Video',[file('Video upload karein','video/*',loadVideo),
+sel('ratio','Frame size',[['16:9','16:9 (YouTube/TV)'],['9:16','9:16 (Reel/Shorts)'],['1:1','1:1 (Square)'],['4:5','4:5 (Insta/FB)']],()=>setRatio(S.ratio)),
+sel('fit','Video fit',[['cover','Fill (crop)'],['contain','Fit (poora dikhe)']]),
+rng('vs','Video zoom',.5,3,.05),rng('vx','Video left/right',-50,50,1),rng('vy','Video up/down',-50,50,1)]);
+add('🧩 Templates (frame choose karein)',[tb,tplHint]);
+add('🔤 Hindi Font',[fsel()]);
+add('✍️ Text',[tin('breaking','Breaking News'),tin('head','Headline / Topic',1),tin('sub','Sub-headline'),tin('loc','Location'),tin('tag','Tag (LIVE / NEWS / INTERVIEW)'),tin('name','Interview: Naam'),tin('desig','Interview: Pad / Parichay'),tin('tlabel','Ticker label'),tin('ticker','Scroll text',1),tin('channel','Channel naam'),file('Channel logo (optional)','image/*',f=>{const i=new Image();i.onload=()=>logo=i;i.src=URL.createObjectURL(f)})]);
+function fsel(){const l=sel('font','Font chunein',FONTS.map(f=>[f,f]),setFont);l.querySelectorAll('option').forEach(o=>o.style.fontFamily="'"+o.value+"'");return l}
+const VMSG="⚠️ Is video ka video-track browser mein decode nahi ho raha (sirf awaaz chal rahi hai). Aam wajah: phone ki HEVC/H.265 video. Solution: video ko H.264 MP4 mein convert karein (HandBrake / CapCut / VLC), ya phone mein 'Most Compatible' / H.264 format mein record karein, ya Chrome/Edge latest use karein.";
+function warn(t){let w=$('warn');if(!w){w=document.createElement('div');w.id='warn';w.style.cssText='background:#fff3cd;color:#664d03;padding:8px 12px;font-size:13px;display:none';$('top2').after(w)}w.textContent=t;w.style.display=t?'block':'none'}
+function loadVideo(f){curFile=f;warn('');vid.src=URL.createObjectURL(f);vid.load();vid.play().catch(()=>{})}
+vid.addEventListener('loadedmetadata',()=>warn(vid.videoWidth?'':VMSG));
+vid.addEventListener('error',()=>warn(VMSG));
+$('vbtn').onclick=()=>$('vin').click();
+$('vin').onchange=e=>e.target.files[0]&&loadVideo(e.target.files[0]);
+$('stage').ondragover=e=>e.preventDefault();
+$('stage').ondrop=e=>{e.preventDefault();const f=e.dataTransfer.files[0];f&&f.type.startsWith('video')&&loadVideo(f)};
+const CH=[['showBrk','Breaking'],['showHead','Headline'],['showSub','Sub-head'],['showLoc','Location'],['showTag','Tag'],['showName','Naam-plate'],['showTick','Ticker'],['showCh','Logo']];
+CH.forEach(([k,n])=>{const b=document.createElement('button');const up=()=>{b.className='chip'+(S[k]?' on':'');b.textContent=(S[k]?'👁 ':'🚫 ')+n};up();b.onclick=()=>{S[k]=S[k]?0:1;up()};$('chips').appendChild(b)});
+const t2=document.createElement('div');t2.id='top2';$('top').after(t2);
+const ts=document.createElement('select');ts.id='ts';TPL.forEach(([i,n])=>ts.add(new Option(n,i)));ts.value=S.tpl;ts.onchange=()=>tb.children[ts.selectedIndex].click();
+const ssl=document.createElement('input');ssl.type='range';ssl.min=.4;ssl.max=2.5;ssl.step=.05;ssl.disabled=true;ssl.style.width='140px';
+const sn=document.createElement('span');sn.textContent='Preview mein text par click karein';
+const rb=document.createElement('button');rb.className='g';rb.textContent='↺ Positions reset';rb.onclick=()=>{for(const k in O)O[k]={x:0,y:0}};
+const rb2=document.createElement('button');rb2.className='g';rb2.textContent='⚙ Settings reset';rb2.onclick=()=>{try{localStorage.removeItem('nfs')}catch(e){}location.reload()};
+t2.append('Template:',ts,sn,ssl,rb,rb2);
+const SZK={head:'hs',brk:'bs',name:'ns',chips:'ls',logo:'lg',tick:'ks'},SZN={head:'Headline',brk:'Breaking',name:'Naam-plate',chips:'Tag/Location',logo:'Logo',tick:'Ticker'};
+function syncSel(){if(SEL){sn.textContent='Selected: '+SZN[SEL]+' (drag ya size slider)';ssl.disabled=false;ssl.value=S[SZK[SEL]]}else{sn.textContent='Preview mein text par click karein';ssl.disabled=true}if(window.lpSync)lpSync()}
+ssl.oninput=()=>{if(!SEL)return;const k=SZK[SEL];S[k]=+ssl.value;const f=$('f_'+k);if(f)f.value=S[k]};
+setInterval(()=>{ts.value=S.tpl;if(SEL&&document.activeElement!==ssl)ssl.value=S[SZK[SEL]]},300);
+const pt=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}};
+let drag=null;cv.style.touchAction='none';cv.style.cursor='move';
+cv.onpointerdown=e=>{const p=pt(e);SEL=null;drag=null;for(let i=HIT.length-1;i>=0;i--){const h=HIT[i];if(p.x>=h.x0&&p.x<=h.x1&&p.y>=h.y0&&p.y<=h.y1){SEL=h.k;drag={sx:p.x,sy:p.y,ox:O[h.k].x,oy:O[h.k].y};cv.setPointerCapture(e.pointerId);break}}syncSel()};
+cv.onpointermove=e=>{if(!drag||!SEL)return;const p=pt(e);O[SEL].x=drag.ox+p.x-drag.sx;O[SEL].y=drag.oy+p.y-drag.sy};
+cv.onpointerup=()=>drag=null;
+add('🔠 Size & Direction',[rng('hs','Headline size',.5,2.2,.05),rng('ss','Sub-headline size',.5,2.2,.05),rng('bs','Breaking size',.5,2.2,.05),rng('ls','Location/Tag size',.5,2.2,.05),rng('ns','Naam size',.5,2.2,.05),rng('ks','Ticker size',.5,2.2,.05),rng('lg','Logo/Channel size',.5,2.5,.05),
+rng('tspeed','Ticker speed',20,400,5),sel('tdir','Ticker direction',[['left','← Right se Left'],['right','→ Left se Right'],['static','Ruka hua']]),
+sel('align','Headline alignment',[['left','Left'],['center','Center'],['right','Right']]),rng('off','Text panel upar/neeche',0,300,2)]);
+add('🎨 Colors',[col('c1','Primary'),col('c2','Bar / Dark'),col('c3','Breaking / Tag'),col('tc','Text')],false);
+
+/* mobile / tabs UI */
+const mqm=matchMedia('(max-width:760px)');let curTab='video';
+const xpBox=document.createElement('div');xpBox.className='xp';
+const chipBox=document.createElement('div');chipBox.className='chipbox';
+const vb2=document.createElement('button');vb2.className='big';vb2.textContent='📂 Video Choose (gallery se)';vb2.onclick=()=>$('vin').click();
+side.querySelector('details[data-tab="video"]').insertBefore(vb2,side.querySelector('details[data-tab="video"] summary').nextSibling);
+const mkb=(t,fn)=>{const b=document.createElement('button');b.className='g big2';b.textContent=t;b.onclick=fn;return b};
+const lay=document.createElement('div');
+const layInfo=document.createElement('div');layInfo.className='layinfo';
+const elRow=document.createElement('div');elRow.className='elrow';
+[['head','Headline'],['brk','Breaking'],['name','Naam'],['chips','Tag/Loc'],['logo','Logo'],['tick','Ticker']].forEach(([k,n])=>{const b=document.createElement('button');b.className='chip';b.textContent=n;b.dataset.k=k;b.onclick=()=>{SEL=k;syncSel()};elRow.appendChild(b)});
+const stepSz=d=>{if(!SEL)return;const k=SZK[SEL];S[k]=Math.max(.4,Math.min(2.5,Math.round((S[k]+d)*100)/100));const fl=$('f_'+k);if(fl)fl.value=S[k];syncSel()};
+const szRow=document.createElement('div');szRow.className='elrow';szRow.append(mkb('A−  chhota',()=>stepSz(-.1)),mkb('A+  bada',()=>stepSz(.1)));
+const ng=document.createElement('div');ng.className='nudge';
+const nb=(t,dx,dy,c)=>{if(!t)return document.createElement('span');const b=document.createElement('button');b.className='g';b.textContent=t;let iv=null;
+const go=()=>{if(!SEL)return;const o=O[SEL]||(O[SEL]={x:0,y:0});if(c){o.x=0;o.y=0}else{o.x+=dx*6*u;o.y+=dy*6*u}};
+const st=()=>clearInterval(iv);b.onpointerdown=e=>{e.preventDefault();go();if(!c)iv=setInterval(go,70)};b.onpointerup=st;b.onpointerleave=st;b.onpointercancel=st;return b};
+[['',0,0],['↑',0,-1],['',0,0],['←',-1,0],['⊙',0,0,1],['→',1,0],['',0,0],['↓',0,1],['','','']].forEach(a=>ng.appendChild(nb(...a)));
+const rr=document.createElement('div');rr.className='elrow';rr.append(mkb('↺ Positions reset',()=>{for(const k in O)O[k]={x:0,y:0}}),mkb('⚙ Settings reset',()=>rb2.onclick()));
+const hint=document.createElement('div');hint.className='hint';hint.textContent='Pehle upar se element chunein (ya preview par tap karein), phir A−/A+ se size, aur ↑↓←→ se jagah badlein. ⊙ se wapas centre. Preview par ungli se drag bhi kar sakte hain.';
+lay.append(layInfo,elRow,szRow,ng,rr,hint);
+window.lpSync=()=>{layInfo.textContent=SEL?'Selected: '+SZN[SEL]:'Pehle element chunein';[...elRow.children].forEach(c=>c.classList.toggle('on',c.dataset.k==SEL))};
+const layDet=add('🎯 Selected element (size / jagah)',[lay],true,'layout');
+side.insertBefore(layDet,side.querySelector('details[data-tab="layout"]'));
+const chipDet=add('👁 Show / Hide',[chipBox],true,'text');
+const asl=rng('asy','🎧 Awaaz sync (ms)',-500,500,10),asv=document.createElement('b');asv.textContent=' '+S.asy+' ms';asl.querySelector('input').addEventListener('input',e=>asv.textContent=' '+e.target.value+' ms');asl.append(asv);
+const anote=document.createElement('div');anote.className='hint';anote.textContent='Agar export ke baad awaaz video se pehle chalti hai to + karein (awaaz der se), aur agar peeche chalti hai to − karein. Pehle Half size mein chhota test export karein.';
+const bgn=document.createElement('div');bgn.className='hint';bgn.textContent=window.AndroidBridge?'App mode: export ke dauraan notification mein progress dikhega, aur screen band hone ya dusra app khulne par bhi export chalta rahega (foreground service).':'Export ke dauraan ek bahut dheemi, lagbhag sunai na dene wali awaaz chalti hai, taaki Chrome tab ko rok na de, aur notification panel mein progress dikhe. Yeh best-effort hai: battery saver ya Chrome ki battery "Restricted" setting export rok sakti hai. Chrome ko battery "Unrestricted" rakhein aur export ke dauraan tab band na karein.';
+add('⬇ Export',[xpBox,chk('bg','🔔 Background mode (screen off / dusra app khulne par bhi export chalta rahe)'),bgn,asl,anote],true,'export');
+const tabBar=document.createElement('div');tabBar.id='tabs';
+[['video','🎬 Video'],['frame','🧩 Frame'],['text','✍ Text'],['layout','📐 Layout'],['export','⬇ Export']].forEach(([k,n])=>{const b=document.createElement('button');b.textContent=n;if(k==curTab)b.className='on';b.onclick=()=>{curTab=k;applyTab();[...tabBar.children].forEach(x=>x.classList.toggle('on',x===b));side.scrollTop=0};tabBar.appendChild(b)});
+side.prepend(tabBar);
+function applyTab(){const m=mqm.matches;side.querySelectorAll(':scope>details').forEach(d=>{d.style.display=d===chipDet?(m&&curTab=='text'?'':'none'):(!m||d.dataset.tab==curTab?'':'none')})}
+function place(){const m=mqm.matches;(m?xpBox:$('bar')).appendChild($('xctl'));(m?chipBox:$('top')).appendChild($('chips'));applyTab()}
+mqm.addEventListener('change',place);place();lpSync();
+if(!saved)P.classic.forEach((c,i)=>{S['c'+(i+1)]=c});
+setRatio(S.ratio);setFont();setInterval(()=>{try{localStorage.setItem('nfs',JSON.stringify(S))}catch(e){}},2000);frame();
+</script>
+</body>
+</html>
