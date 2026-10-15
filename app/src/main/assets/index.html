@@ -171,7 +171,8 @@ $('seek').oninput=e=>{seeking=true;if(vid.duration)vid.currentTime=e.target.valu
 $('seek').onchange=()=>seeking=false;
 $('pp').onclick=()=>vid.paused?vid.play():vid.pause();
 $('snap').onclick=()=>{SEL=null;syncSel();setTimeout(()=>cv.toBlob(b=>dl(b,'frame.png')),80)};
-async function dl(b,n){if(window.AndroidBridge&&AndroidBridge.saveBegin){try{if(!AndroidBridge.saveBegin(n,b.type||'application/octet-stream'))throw 0;const CH=3*262144;for(let o=0;o<b.size;o+=CH){const u8=new Uint8Array(await b.slice(o,o+CH).arrayBuffer());let t='';for(let i=0;i<u8.length;i+=8192)t+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));if(!AndroidBridge.saveChunk(btoa(t)))throw 0}AndroidBridge.saveEnd();return}catch(e){try{AndroidBridge.saveAbort()}catch(x){}}}
+const b64of=bl=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]||'');fr.onerror=rej;fr.readAsDataURL(bl)});
+async function dl(b,n){if(window.AndroidBridge&&AndroidBridge.saveBegin){try{if(!AndroidBridge.saveBegin(n,b.type||'application/octet-stream'))throw 0;const CH=3*349525;for(let o=0;o<b.size;o+=CH){if(!AndroidBridge.saveChunk(await b64of(b.slice(o,o+CH))))throw 0}AndroidBridge.saveEnd();return}catch(e){try{AndroidBridge.saveAbort()}catch(x){}}}
 const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click()}
 
 /* export */
@@ -232,7 +233,7 @@ const FB=(t,ver,fl,...k)=>B4(t,u32((ver<<24)|fl),...k);
 const MAT=u32(0x10000,0,0,0,0x10000,0,0,0,0x40000000);
 function avc1Entry(w,h,d){return B4('avc1',Z(6),u16(1),Z(16),u16(w,h),u32(0x480000,0x480000,0),u16(1),Z(32),u16(0x18,0xFFFF),B4('avcC',d))}
 function mp4aEntry(asc){const dsi=[0x05,asc.length,...asc],db=[0x40,0x15,0,0,0,...u32(0),...u32(128000),...dsi],dc=[0x04,db.length,...db],eb=[0,0,0,...dc,0x06,1,2],es=Uint8Array.from([0x03,eb.length,...eb]);return B4('mp4a',Z(6),u16(1),Z(8),u16(2,16),u16(0,0),u32(48000*65536),FB('esds',0,0,es))}
-function mkTrak(id,type,ts,smp,entry,offs,w,h,st=0){
+function mkTrak(id,type,ts,smp,entry,offs,w,h,st=0,mt=0){
 const n=smp.length,runs=[];for(const s of smp){const l=runs[runs.length-1];if(l&&l[1]==s.delta)l[0]++;else runs.push([1,s.delta])}
 const dur=smp.reduce((a,s)=>a+s.delta,0),stts=FB('stts',0,0,u32(runs.length),U32A(runs.flat()));
 const ks=[];smp.forEach((s,i)=>s.key&&ks.push(i+1));
@@ -241,14 +242,15 @@ const stsz=FB('stsz',0,0,u32(0,n),U32A(smp.map(s=>s.size))),stco=FB('stco',0,0,u
 const stbl=B4('stbl',FB('stsd',0,0,u32(1),entry),stts,stss,FB('stsc',0,0,u32(1,1,1,1)),stsz,stco);
 const minf=B4('minf',type=='vide'?FB('vmhd',0,1,u16(0,0,0,0)):FB('smhd',0,0,u16(0,0)),B4('dinf',FB('dref',0,0,u32(1),FB('url ',0,1))),stbl);
 const mdhd=FB('mdhd',0,0,u32(0,0,ts,dur),u16(0x55C4,0)),hdlr=FB('hdlr',0,0,u32(0),te.encode(type),u32(0,0,0),te.encode(type=='vide'?'VideoHandler':'SoundHandler'),Z(1));
-const stMs=Math.round(st*1000/ts),dm=Math.round(dur*1000/ts)+stMs,tkhd=FB('tkhd',0,7,u32(0,0,id,0,dm),u32(0,0),u16(0,0,type=='soun'?0x100:0,0),MAT,u32(w*65536,h*65536));
-const edts=st>0?B4('edts',FB('elst',0,0,u32(2),u32(stMs,0xFFFFFFFF,0x10000),u32(dm-stMs,0,0x10000))):Z(0);
+const stMs=Math.round(st*1000/ts),mtMs=Math.round(mt*1000/ts),dm=Math.round(dur*1000/ts)-mtMs+stMs,tkhd=FB('tkhd',0,7,u32(0,0,id,0,dm),u32(0,0),u16(0,0,type=='soun'?0x100:0,0),MAT,u32(w*65536,h*65536));
+const ent=[];if(st>0)ent.push([stMs,0xFFFFFFFF]);if(st>0||mt>0)ent.push([dm-stMs,mt]);
+const edts=ent.length?B4('edts',FB('elst',0,0,u32(ent.length),...ent.map(e=>u32(e[0],e[1],0x10000)))):Z(0);
 return{box:B4('trak',tkhd,edts,B4('mdia',mdhd,hdlr,minf)),durMs:dm}}
-function muxMp4(vc,ac,w,h,vE,aE){
+function muxMp4(vc,ac,w,h,vE,aE,aTs=48000,aMt=0,aDl=0){
 const prep=(arr,ts,minD)=>{arr.sort((a,b)=>a.t-b.t);let p=-1;const o=arr.map(x=>{let d=Math.max(Math.round(x.t*ts/1e6),p+1);p=d;return{dts:d,size:x.d.length,d:x.d,key:x.key}});for(let i=0;i<o.length;i++)o[i].delta=i<o.length-1?o[i+1].dts-o[i].dts:(i?o[i-1].delta:minD);return o};
-const V=prep(vc,90000,3000),A=aE&&ac.length?prep(ac,48000,1024):[];
-const all=[...V.map(s=>({s,tr:0,tm:s.dts/90000})),...A.map(s=>({s,tr:1,tm:s.dts/48000}))].sort((a,b)=>a.tm-b.tm||a.tr-b.tr);
-const build=(ov,oa)=>{const t1=mkTrak(1,'vide',90000,V,vE,ov,w,h,V[0].dts),t2=A.length?mkTrak(2,'soun',48000,A,aE,oa,0,0,A[0].dts):null,dm=Math.max(t1.durMs,t2?t2.durMs:0);
+const V=prep(vc,90000,3000),A=aE&&ac.length?prep(ac,aTs,1024):[];
+const all=[...V.map(s=>({s,tr:0,tm:s.dts/90000})),...A.map(s=>({s,tr:1,tm:(s.dts-aMt+aDl)/aTs}))].sort((a,b)=>a.tm-b.tm||a.tr-b.tr);
+const build=(ov,oa)=>{const t1=mkTrak(1,'vide',90000,V,vE,ov,w,h,V[0].dts),t2=A.length?mkTrak(2,'soun',aTs,A,aE,oa,0,0,aDl+A[0].dts,aMt):null,dm=Math.max(t1.durMs,t2?t2.durMs:0);
 return B4('moov',FB('mvhd',0,0,u32(0,0,1000,dm),u32(0x10000),u16(0x100,0),u32(0,0),MAT,u32(0,0,0,0,0,0),u32(t2?3:2)),t1.box,...(t2?[t2.box]:[]))};
 const ftyp=B4('ftyp',te.encode('isom'),u32(512),te.encode('isom'),te.encode('iso2'),te.encode('avc1'),te.encode('mp41'));
 const m0=build(V.map(()=>0),A.map(()=>0)),base=ftyp.length+m0.length+8;let pos=base;const ov=[],oa=[];
@@ -298,6 +300,45 @@ if(ctts){i=0;for(const[c,d]of ctts)for(let j=0;j<c&&i<N;j++){sm[i].cts=sm[i].dts
 for(const x of sm){if(x.cts===undefined)x.cts=x.dts}
 sm.forEach((x,i)=>{x.ts=Math.round(((x.cts-emt)/ts+edl)*1e6);x.key=keys?keys.has(i):true});
 return{codec,desc:cb.t=='vpcC'?null:desc,w,h,rot,samples:sm}}
+async function demuxAudio(file){
+const size=file.size;let pos=0,moov=null;
+while(pos+8<=size){const h=new DataView(await file.slice(pos,pos+16).arrayBuffer());let sz=h.getUint32(0),hd=8;const t=String.fromCharCode(h.getUint8(4),h.getUint8(5),h.getUint8(6),h.getUint8(7));
+if(sz==1){sz=Number(h.getBigUint64(8));hd=16}else if(sz==0)sz=size-pos;if(sz<hd)break;
+if(t=='moov'){moov=new Uint8Array(await file.slice(pos+hd,pos+sz).arrayBuffer());break}pos+=sz}
+if(!moov)throw{noaudio:1};
+const dv=new DataView(moov.buffer);
+const bx=(s,e)=>{const o=[];while(s+8<=e){let sz=dv.getUint32(s),hd=8;if(sz==1){sz=Number(dv.getBigUint64(s+8));hd=16}else if(sz==0)sz=e-s;if(sz<hd)break;o.push({t:String.fromCharCode(moov[s+4],moov[s+5],moov[s+6],moov[s+7]),s:s+hd,e:s+sz});s+=sz}return o};
+const fd=(b,t)=>b&&bx(b.s,b.e).find(x=>x.t==t);
+let trak=null;
+for(const t of bx(0,moov.length).filter(x=>x.t=='trak')){const hd=fd(fd(t,'mdia'),'hdlr');if(hd&&String.fromCharCode(moov[hd.s+8],moov[hd.s+9],moov[hd.s+10],moov[hd.s+11])=='soun'){trak=t;break}}
+if(!trak)throw{noaudio:1};
+const md=fd(trak,'mdia'),mh=fd(md,'mdhd'),stbl=fd(fd(md,'minf'),'stbl');
+if(!mh||!stbl)throw{noaudio:1};
+const ts=dv.getUint32(mh.s+(moov[mh.s]?20:12));
+const sd=fd(stbl,'stsd'),en=bx(sd.s+8,sd.e)[0];
+if(!en||en.t!=='mp4a')throw{noaudio:1};
+const entry=moov.slice(en.s-8,en.e);let aac=false;
+for(let i=0;i<entry.length-6&&!aac;i++){if(entry[i]==4){let j=i+1;while(j<entry.length&&entry[j]&0x80)j++;j++;if(entry[j]==0x40&&entry[j+1]==0x15)aac=true}}
+if(!aac)throw{noaudio:1};
+const mvh=fd({s:0,e:moov.length},'mvhd'),mts=mvh?dv.getUint32(mvh.s+(moov[mvh.s]?20:12)):1000;
+let emt=0,edl=0;const eds=fd(trak,'edts'),elb=eds&&fd(eds,'elst');
+if(elb){const v=moov[elb.s],n=dv.getUint32(elb.s+4);let o=elb.s+8,fnd=false;for(let i=0;i<n;i++){let sdur,mt;if(v){sdur=Number(dv.getBigUint64(o));mt=Number(dv.getBigInt64(o+8));o+=20}else{sdur=dv.getUint32(o);mt=dv.getInt32(o+4);o+=12}if(mt==-1){if(!fnd)edl+=sdur/mts}else if(!fnd){emt=mt;fnd=true}}}
+const rd=(b)=>{const n=dv.getUint32(b.s+4),a=[];let o=b.s+8;for(let i=0;i<n;i++){a.push([dv.getUint32(o),dv.getInt32(o+4)]);o+=8}return a};
+const stts=rd(fd(stbl,'stts')),zb=fd(stbl,'stsz'),fix=dv.getUint32(zb.s+4),N=dv.getUint32(zb.s+8),sizes=[];
+for(let i=0;i<N;i++)sizes.push(fix||dv.getUint32(zb.s+12+i*4));
+const scB=fd(stbl,'stsc'),scn=dv.getUint32(scB.s+4),sc=[];for(let i=0;i<scn;i++)sc.push([dv.getUint32(scB.s+8+i*12),dv.getUint32(scB.s+12+i*12)]);
+const co=fd(stbl,'stco'),c64=!co?fd(stbl,'co64'):null,cob=co||c64;if(!cob)throw{noaudio:1};
+const cn=dv.getUint32(cob.s+4),offs=[];for(let i=0;i<cn;i++)offs.push(c64?Number(dv.getBigUint64(cob.s+8+i*8)):dv.getUint32(cob.s+8+i*4));
+const sm=[];let si=0,ci=0;
+for(let c=0;c<cn&&si<N;c++){while(sc.length>ci+1&&sc[ci+1][0]<=c+1)ci++;let off=offs[c];for(let j=0;j<sc[ci][1]&&si<N;j++){sm.push({off,size:sizes[si]});off+=sizes[si];si++}}
+if(!sm.length||sm.length!=N)throw{noaudio:1};
+let dts=0,i=0;for(const[c,d]of stts)for(let j=0;j<c&&i<N;j++){sm[i].dts=dts;dts+=d;i++}
+return{entry,ts,emt,edl,samples:sm}}
+async function loadAudio(pa){
+const out=[];let win=null,ws=0,we=0;
+for(const s of pa.samples){if(!win||s.off<ws||s.off+s.size>we){ws=s.off;we=Math.min(curFile.size,ws+Math.max(4<<20,s.size));win=new Uint8Array(await curFile.slice(ws,we).arrayBuffer())}
+out.push({t:s.dts*1e6/pa.ts,d:win.slice(s.off-ws,s.off-ws+s.size)})}
+return out}
 async function decodeExport(o){
 const info=await demux(curFile),N=info.samples.length;
 const cfg={codec:info.codec,codedWidth:info.w,codedHeight:info.h};if(info.desc)cfg.description=info.desc;
@@ -367,16 +408,19 @@ vis=async()=>{if(!document.hidden&&recording){try{wl=await navigator.wakeLock.re
 vid.pause();vid.loop=false;vid.muted=true;
 if(vid.currentTime>0.01){vid.currentTime=0;await once(vid,'seeked')}
 const q=+$('fq').value,ew=Math.round(W*q/2)*2,eh=Math.round(H*q/2)*2,oc=document.createElement('canvas'),octx=oc.getContext('2d');oc.width=ew;oc.height=eh;
+let pa=null,usePA=false;
+if(/\.(mp4|mov|m4v)$/i.test(curFile?curFile.name:'')){try{pa=await demuxAudio(curFile)}catch(e){pa=null}}
 let fmt='webm',cfg=null;
 try{const lv=ew*eh>2.1e6?'2a':ew*eh>9.2e5?'28':'1f';
 for(const hw of ['prefer-hardware','no-preference'])for(const pr of ['64','4d','42']){if(cfg)break;const c={codec:'avc1.'+pr+'00'+lv,width:ew,height:eh,bitrate:Math.round(ew*eh*30*.11),framerate:30,hardwareAcceleration:hw,avc:{format:'avc'}};if((await VideoEncoder.isConfigSupported(c)).supported)cfg=c}
 let aacOk=false;if(cfg&&window.AudioEncoder)aacOk=(await AudioEncoder.isConfigSupported({codec:'mp4a.40.2',sampleRate:48000,numberOfChannels:2,bitrate:128000,aac:{format:'aac'}})).supported;
-if(cfg&&(aacOk||!curFile||dur>600))fmt='mp4';else cfg=null}catch(e){cfg=null;fmt='webm'}
+if(cfg&&(aacOk||pa||!curFile||dur>600))fmt='mp4';else cfg=null}catch(e){cfg=null;fmt='webm'}
 if(!cfg)cfg={codec:'vp8',latencyMode:'realtime',width:ew,height:eh,bitrate:Math.round(ew*eh*30*.15),framerate:30};
 let sup=await VideoEncoder.isConfigSupported(cfg);
 if(!sup.supported&&fmt=='webm'){cfg.codec='vp09.00.40.08';sup=await VideoEncoder.isConfigSupported(cfg);if(!sup.supported)throw 'Is browser mein video encoder support nahi';}
 const cid=cfg.codec=='vp8'?'V_VP8':'V_VP9';
-if(curFile&&dur<=600){say('⚡ Awaaz taiyar ho rahi hai…');try{adesc=await encodeAudio(ach,()=>fcancel,fmt=='mp4')}catch(e){ach=[];say('Awaaz decode nahi hui, bina awaaz export hoga…');await sleep(1200)}}
+if(pa&&fmt=='mp4'){say('⚡ Original awaaz copy ho rahi hai…');try{ach=await loadAudio(pa);usePA=true}catch(e){ach=[];usePA=false}}
+if(!usePA&&curFile&&dur<=600){say('⚡ Awaaz taiyar ho rahi hai…');try{adesc=await encodeAudio(ach,()=>fcancel,fmt=='mp4')}catch(e){ach=[];say('Awaaz decode nahi hui, bina awaaz export hoga…');await sleep(1200)}}
 if(fcancel)throw 'cancel';
 const mk=()=>{const e=new VideoEncoder({output:(c,m)=>{const d=new Uint8Array(c.byteLength);c.copyTo(d);vch.push({t:c.timestamp,d,key:c.type=='key'});if(m&&m.decoderConfig&&m.decoderConfig.description&&!vdesc)vdesc=new Uint8Array(m.decoderConfig.description)},error:e2=>err=e2});e.configure(cfg);return e};
 const ve=mk();let ok=false;
@@ -399,11 +443,12 @@ if(fcancel)throw 'cancel';
 say('⚡ File ban rahi hai…');await ve.flush();ve.close();if(err)throw err;
 const last=vch.reduce((a,x)=>Math.max(a,x.t),0)/1e6;
 let blob,name;
-if(fmt=='mp4'){if(!vdesc)throw 'H.264 config nahi mili';if(ach.length&&!adesc)throw 'AAC config nahi mili';
-blob=muxMp4(vch,ach,ew,eh,avc1Entry(ew,eh,vdesc),ach.length?mp4aEntry(adesc):null);name='news-video.mp4'}
+if(fmt=='mp4'){if(!vdesc)throw 'H.264 config nahi mili';if(ach.length&&!usePA&&!adesc)throw 'AAC config nahi mili';
+const asy=+S.asy||0,aTs=usePA?pa.ts:48000,aE=ach.length?(usePA?pa.entry:mp4aEntry(adesc)):null,aDl=usePA?Math.round((pa.edl+Math.max(0,asy)/1000)*aTs):0,aMt=usePA?pa.emt+Math.round(Math.max(0,-asy)/1000*aTs):0;
+blob=muxMp4(vch,ach,ew,eh,avc1Entry(ew,eh,vdesc),aE,aTs,aMt,aDl);name='news-video.mp4'}
 else{blob=mux(vch,ach,ew,eh,cid,Math.max(dur,last));name='news-video.webm'}
-okDone=true;oname=name;lastB={blob,name};dl(blob,name);$('sv').style.display=$('sh').style.display='';
-say('✅ Ho gaya! '+name+' ('+(blob.size/1048576).toFixed(1)+' MB)'+(ach.length?'':' (bina awaaz)'));
+okDone=true;oname=name;lastB={blob,name};say('💾 File save ho rahi hai… (app band na karein)');await dl(blob,name);$('sv').style.display=$('sh').style.display='';
+say('✅ Ho gaya! '+name+' ('+(blob.size/1048576).toFixed(1)+' MB)'+(fmt=='mp4'?' • H.264':' • WebM')+(ach.length?(usePA?' • original awaaz':' • awaaz'):' (bina awaaz)'));
 }catch(e){if(e==='cancel')say('Cancel ho gaya');else{say('');alert('Fast Export fail hua: '+(e.message||e)+'\nNormal Export try karein.')}}
 finally{document.body.classList.remove('locked');document.removeEventListener('visibilitychange',vis);if(S.bg&&!NB)keepAliveStop(okDone,oname);nativeStop(okDone,oname);try{wl&&wl.release()}catch(e){}VT=null;VF=null;ROT=0;FAST=false;done=true;recording=false;delete btn.dataset.busy;btn.textContent='⚡ Fast Export';vid.onended=null;vid.playbackRate=1;vid.loop=true;vid.muted=false;vid.currentTime=0;vid.play().catch(()=>{});
 setTimeout(()=>{if(!recording){st.style.display='none';st.textContent='● Recording… tab khula rakhein'}},9000)}}
